@@ -10,23 +10,6 @@ function PlansScreen() {
   const user = useSelector(selectUser);
 
   useEffect(() => {
-    db.collection("customers")
-      .doc(user.uid)
-      .collection("subscriptions")
-      .get()
-      .then((querySnapshot) => {
-        querySnapshot.forEach(async (subscription) => {
-          setSubscription({
-            role: subscription.data().role,
-            current_period_start:
-              subscription.data().current_period_start.seconds,
-            current_period_end: subscription.data().current_period_end.seconds,
-          });
-        });
-      });
-    console.log(subscription);
-  }, []);
-  useEffect(() => {
     db.collection("products")
       .where("active", "==", true)
       .get()
@@ -45,6 +28,26 @@ function PlansScreen() {
         setProducts(products);
       });
   }, []);
+
+  useEffect(() => {
+    db.collection("customers")
+      .doc(user.uid)
+      .collection("subscriptions")
+      .get()
+      .then((querySnapshot) => {
+        querySnapshot.forEach(async (subscription) => {
+          setSubscription({
+            role: subscription.data().role,
+            current_period_start:
+              subscription.data().current_period_start.seconds,
+            current_period_end: subscription.data().current_period_end.seconds,
+          });
+        });
+      });
+  }, [user.uid]);
+
+  console.log(subscription);
+  console.log(products);
 
   const loadCheckout = async (priceId) => {
     const docRef = await db
@@ -75,13 +78,27 @@ function PlansScreen() {
 
   return (
     <div className="plansScreen">
+      {subscription && (
+        <p>
+          Renewal date:{" "}
+          {new Date(
+            subscription?.current_period_end * 1000
+          ).toLocaleDateString()}
+        </p>
+      )}
+
       {Object.entries(products).map(([productId, productData]) => {
         const isCurrentPackage = productData.name
           ?.toLowerCase()
-          .includes(subscription?.role);
+          .includes(subscription?.role.toLowerCase());
 
         return (
-          <div key={productId} className="plansScreen__plan">
+          <div
+            key={productId}
+            className={`${
+              isCurrentPackage && "plansScreen__plan--disabled"
+            } plansScreen__plan`}
+          >
             <div className="plansScreen__info">
               <h5>{productData.name}</h5>
               <h6>{productData.description}</h6>
